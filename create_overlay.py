@@ -32,7 +32,6 @@ import matplotlib.cm
 import numpy as np
 import requests
 
-
 # URL of the JSON file exported by the scraper
 JSON_URL = 'http://karlsruhe.codefor.de/mieten/mieten.json'
 
@@ -40,41 +39,85 @@ HEATMAP_FILE = 'heatmap.png'
 HEATMAP_AREA = ((8.28, 49.08), (8.53, 48.92))
 HEATMAP_SIZE = (250, 160)
 HEATMAP_COLORMAP = matplotlib.cm.summer
-HEATMAP_RADIUS = 0.01
+HEATMAP_RADIUS = 0.0002
 
 
 def get_data():
     """
     Load scraped data.
 
-    Returns an array of data points. Each row contains a data point, and
-    each data point has a longitude, a lattitude and the average rent per
-    square meter.
+    Returns a 2-column array of data points (longitude and latitude) and
+    a 1-column array with the corresponding average rent per square
+    meter.
     """
-    return np.array(requests.get(JSON_URL).json())[:, (1, 0, 2)]
+    data = np.array(requests.get(JSON_URL).json())
+    return data[:, (1, 0)], data[:, 2]
 
 
-def sanitize_data(data, max_rel_dist=6):
+def sanitize_data(points, values, max_rel_dist=6):
     """
     Sanitize data by removing outliers.
     """
     # See https://stackoverflow.com/a/16562028/857390
-    values = data[:, 2]
     abs_dist = np.abs(values - np.median(values))
     med_dist = np.median(abs_dist)
     rel_dist = abs_dist / med_dist if med_dist else 0
-    return data[rel_dist < max_rel_dist, :]
+    keep = rel_dist < max_rel_dist
+    return points[keep, :], values[keep]
 
 
-def create_heatmap(data):
-    img = clusterpolate.image(data[:, :2], data[:, 2], size=HEATMAP_SIZE,
-                              area=HEATMAP_AREA, radius=HEATMAP_RADIUS,
-                              colormap=HEATMAP_COLORMAP)[3]
-    img.save(HEATMAP_FILE)
+def create_heatmap(points, values, area):
+    """
+    Create clusterpolated heatmap.
+
+    Takes a 2-column matrix with point coordinates, a 1-column matrix
+    with associated values, and a 2-tuple of 2-tuples describing the
+    target area.
+
+    Returns a ``PIL.Image.Image`` instance.
+    """
+    return clusterpolate.image(
+        points, values, size=HEATMAP_SIZE, area=area,
+        radius=HEATMAP_RADIUS, colormap=HEATMAP_COLORMAP)[3]
+
+
+def lonlat_to_world(points):
+    """
+    Convert longitude and latitude in degrees to world coordinates.
+
+    World coordinates are based on the Web Mercator projection.
+
+    Takes a 2-column matrix with longitude and latitude in degrees and
+    returns a 2-column matrix with world coordinates.
+    """
+    w = np.pi * points / 180  # Convert to radians
+    w[:, 0] += np.pi
+    w[:, 1] = np.pi - np.log(np.tan(np.pi / 4 + w[:, 1] / 2))
+    return w
+
+
+def world_to_lonlat(points):
+    """
+    Convert world coordinates to longitude and latitude in degrees.
+
+    World coordinates are based on the Web Mercator projection.
+
+    Takes a 2-column matrix with world coordinates and returns a
+    2-column matrix with longitude and latitude in degrees.
+    """
+    w = np.zeros(points.shape)
+    w[:, 0] = points[:, 0] - np.pi
+    w[:, 1] = 2 * (np.arctan(np.exp(-(points[:, 1] - np.pi))) - np.pi / 4)
+    return w * 180 / np.pi  # Convert to degrees
 
 
 if __name__ == '__main__':
-    data = get_data()
-    data = sanitize_data(data)
-    create_heatmap(data)
+    points, values = get_data()
+    points, values = sanitize_data(points, values)
+
+    w_points = lonlat_to_world(points)
+    w_area = lonlat_to_world(np.array(HEATMAP_AREA))
+
+    img = create_heatmap(w_points, values, w_area)
+    img.save(HEATMAP_FILE)
 
