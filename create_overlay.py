@@ -33,16 +33,16 @@ import json
 import clusterpolate
 import matplotlib.cm
 import numpy as np
-import requests
 
-# URL of the JSON file exported by the scraper
-JSON_URL = 'http://karlsruhe.codefor.de/mieten/mieten.json'
 
-HEATMAP_FILE = 'heatmap.png'
+# Filename for JSON data
+JSON_FILE = 'mieten.json'
+
+HEATMAP_FILE = 'overlay.png'
 HEATMAP_AREA = ((8.28, 49.08), (8.53, 48.92))
-HEATMAP_SIZE = (250, 160)
+HEATMAP_SIZE = (200, 128)
 HEATMAP_COLORMAP = matplotlib.cm.summer
-HEATMAP_RADIUS = 0.0002
+HEATMAP_RADIUS = 0.00015
 
 # Number of entries in the exported colormap
 COLORMAP_EXPORT_ENTRIES = 20
@@ -50,15 +50,19 @@ COLORMAP_EXPORT_ENTRIES = 20
 # Filename of the exported colormap
 COLORMAP_EXPORT_FILE = 'colormap.json'
 
-def get_data():
+
+def load_data(filename):
     """
     Load scraped data.
+
+    ``filename`` is the name of the JSON file to load.
 
     Returns a 2-column array of data points (longitude and latitude) and
     a 1-column array with the corresponding average rent per square
     meter.
     """
-    data = np.array(requests.get(JSON_URL).json())
+    with codecs.open(filename, 'r', encoding='utf8') as f:
+        data = np.array(json.load(f))
     return data[:, (1, 0)], data[:, 2]
 
 
@@ -131,7 +135,7 @@ def export_colormap(cm, filename, entries=20):
 
 
 if __name__ == '__main__':
-    points, values = get_data()
+    points, values = load_data(JSON_FILE)
     points, values = sanitize_data(points, values)
 
     w_points = lonlat_to_world(points)
