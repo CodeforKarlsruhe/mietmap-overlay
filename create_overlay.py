@@ -27,6 +27,9 @@ Visualization overlay for renting costs in Karlsruhe.
 
 from __future__ import division, unicode_literals
 
+import codecs
+import json
+
 import clusterpolate
 import matplotlib.cm
 import numpy as np
@@ -41,6 +44,11 @@ HEATMAP_SIZE = (250, 160)
 HEATMAP_COLORMAP = matplotlib.cm.summer
 HEATMAP_RADIUS = 0.0002
 
+# Number of entries in the exported colormap
+COLORMAP_EXPORT_ENTRIES = 20
+
+# Filename of the exported colormap
+COLORMAP_EXPORT_FILE = 'colormap.json'
 
 def get_data():
     """
@@ -111,6 +119,17 @@ def world_to_lonlat(points):
     return w * 180 / np.pi  # Convert to degrees
 
 
+def export_colormap(cm, filename, entries=20):
+    """
+    Export a matplotlib colormap to a JSON file.
+
+    The colormap is exported as a list of ``entries`` RGBA tuples for
+    linearly spaced indices between 0 and 1 (inclusive).
+    """
+    with codecs.open(filename, 'w', encoding='utf8') as f:
+        json.dump(cm(np.linspace(0, 1, entries)).tolist(), f)
+
+
 if __name__ == '__main__':
     points, values = get_data()
     points, values = sanitize_data(points, values)
@@ -120,4 +139,7 @@ if __name__ == '__main__':
 
     img = create_heatmap(w_points, values, w_area)
     img.save(HEATMAP_FILE)
+
+    export_colormap(HEATMAP_COLORMAP, COLORMAP_EXPORT_FILE,
+                    COLORMAP_EXPORT_ENTRIES)
 
