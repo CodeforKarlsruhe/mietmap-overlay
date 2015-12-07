@@ -1,2 +1,4 @@
+/overlay.log*
+
 *.pyc
 .*.swp

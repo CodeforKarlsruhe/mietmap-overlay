@@ -129,35 +129,68 @@ def export_colormap(cm, filename, entries=20):
 
 if __name__ == '__main__':
     import argparse
+    import logging
+    import logging.handlers
     import os.path
 
     HERE = os.path.abspath(os.path.dirname(__file__))
-    RENTS_FILE = os.path.join(HERE, 'mieten.json')
-    OVERLAY_FILE = os.path.join(HERE, 'overlay.png')
-    COLORMAP_FILE = os.path.join(HERE, 'colormap.json')
-    parser = argparse.ArgumentParser(description='Rent price overlay creation')
-    parser.add_argument('--rents', help='JSON file with rent data',
-                        default=RENTS_FILE)
-    parser.add_argument('--overlay', help='PNG overlay output file',
-                        default=OVERLAY_FILE)
-    parser.add_argument('--colormap', help='JSON colormap output file',
-                        default=COLORMAP_FILE)
-    parser.add_argument('--verbose', '-v', help='Output log to STDOUT',
-                        default=False, action='store_true')
-    args = parser.parse_args()
 
-    args.rents = os.path.abspath(args.rents)
-    args.overlay = os.path.abspath(args.overlay)
-    args.colormap = os.path.abspath(args.colormap)
+    # Initialize logging
+    LOG_FILE = os.path.join(HERE, 'overlay.log')
+    logger = logging.getLogger()
+    formatter = logging.Formatter('[%(asctime)s] <%(levelname)s> %(message)s')
+    handler = logging.handlers.TimedRotatingFileHandler(
+        LOG_FILE, when='W0', backupCount=4, encoding='utf8')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.info('Started')
 
-    points, values = load_data(args.rents)
-    points, values = sanitize_data(points, values)
+    # Parse command line arguments
+    def parse_cli_args():
+        RENTS_FILE = os.path.join(HERE, 'mieten.json')
+        OVERLAY_FILE = os.path.join(HERE, 'overlay.png')
+        COLORMAP_FILE = os.path.join(HERE, 'colormap.json')
+        parser = argparse.ArgumentParser(description='Rent price overlay creation')
+        parser.add_argument('--rents', help='JSON file with rent data',
+                            default=RENTS_FILE)
+        parser.add_argument('--overlay', help='PNG overlay output file',
+                            default=OVERLAY_FILE)
+        parser.add_argument('--colormap', help='JSON colormap output file',
+                            default=COLORMAP_FILE)
+        parser.add_argument('--verbose', '-v', help='Output log to STDOUT',
+                            default=False, action='store_true')
+        args = parser.parse_args()
+        args.rents = os.path.abspath(args.rents)
+        args.overlay = os.path.abspath(args.overlay)
+        args.colormap = os.path.abspath(args.colormap)
+        return args
 
-    w_points = lonlat_to_world(points)
-    w_area = lonlat_to_world(np.array(HEATMAP_AREA))
+    try:
+        args = parse_cli_args()
 
-    img = create_heatmap(w_points, values, w_area)
-    img.save(args.overlay)
+        if args.verbose:
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
 
-    export_colormap(HEATMAP_COLORMAP, args.colormap, COLORMAP_EXPORT_ENTRIES)
+        logger.info('Loading data from "%s"' % args.rents)
+        points, values = load_data(args.rents)
+        points, values = sanitize_data(points, values)
+        w_points = lonlat_to_world(points)
+        w_area = lonlat_to_world(np.array(HEATMAP_AREA))
+
+        logger.info('Creating overlay')
+        img = create_heatmap(w_points, values, w_area)
+
+        logger.info('Storing image in "%s"' % args.overlay)
+        img.save(args.overlay)
+
+        logger.info('Exporting colormap to "%s"' % args.colormap)
+        export_colormap(HEATMAP_COLORMAP, args.colormap, COLORMAP_EXPORT_ENTRIES)
+
+    except Exception as e:
+        logger.exception(e)
+
+    logger.info('Finished')
 
