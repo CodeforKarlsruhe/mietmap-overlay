@@ -35,10 +35,6 @@ import matplotlib.cm
 import numpy as np
 
 
-# Filename for JSON data
-JSON_FILE = 'mieten.json'
-
-HEATMAP_FILE = 'overlay.png'
 HEATMAP_AREA = ((8.28, 49.08), (8.53, 48.92))
 HEATMAP_SIZE = (200, 128)
 HEATMAP_COLORMAP = matplotlib.cm.summer
@@ -46,9 +42,6 @@ HEATMAP_RADIUS = 0.00015
 
 # Number of entries in the exported colormap
 COLORMAP_EXPORT_ENTRIES = 20
-
-# Filename of the exported colormap
-COLORMAP_EXPORT_FILE = 'colormap.json'
 
 
 def load_data(filename):
@@ -135,15 +128,36 @@ def export_colormap(cm, filename, entries=20):
 
 
 if __name__ == '__main__':
-    points, values = load_data(JSON_FILE)
+    import argparse
+    import os.path
+
+    HERE = os.path.abspath(os.path.dirname(__file__))
+    RENTS_FILE = os.path.join(HERE, 'mieten.json')
+    OVERLAY_FILE = os.path.join(HERE, 'overlay.png')
+    COLORMAP_FILE = os.path.join(HERE, 'colormap.json')
+    parser = argparse.ArgumentParser(description='Rent price overlay creation')
+    parser.add_argument('--rents', help='JSON file with rent data',
+                        default=RENTS_FILE)
+    parser.add_argument('--overlay', help='PNG overlay output file',
+                        default=OVERLAY_FILE)
+    parser.add_argument('--colormap', help='JSON colormap output file',
+                        default=COLORMAP_FILE)
+    parser.add_argument('--verbose', '-v', help='Output log to STDOUT',
+                        default=False, action='store_true')
+    args = parser.parse_args()
+
+    args.rents = os.path.abspath(args.rents)
+    args.overlay = os.path.abspath(args.overlay)
+    args.colormap = os.path.abspath(args.colormap)
+
+    points, values = load_data(args.rents)
     points, values = sanitize_data(points, values)
 
     w_points = lonlat_to_world(points)
     w_area = lonlat_to_world(np.array(HEATMAP_AREA))
 
     img = create_heatmap(w_points, values, w_area)
-    img.save(HEATMAP_FILE)
+    img.save(args.overlay)
 
-    export_colormap(HEATMAP_COLORMAP, COLORMAP_EXPORT_FILE,
-                    COLORMAP_EXPORT_ENTRIES)
+    export_colormap(HEATMAP_COLORMAP, args.colormap, COLORMAP_EXPORT_ENTRIES)
 
