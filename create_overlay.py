@@ -37,7 +37,7 @@ import numpy as np
 
 # Rent range for data sanitation
 MIN_RENT = 5
-MAX_RENT = 30
+MAX_RENT = 20
 
 # Heatmap options
 HEATMAP_AREA = ((8.28, 49.08), (8.53, 48.92))
