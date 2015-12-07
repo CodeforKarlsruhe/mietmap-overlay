@@ -35,6 +35,11 @@ import matplotlib.cm
 import numpy as np
 
 
+# Rent range for data sanitation
+MIN_RENT = 5
+MAX_RENT = 30
+
+# Heatmap options
 HEATMAP_AREA = ((8.28, 49.08), (8.53, 48.92))
 HEATMAP_SIZE = (200, 128)
 HEATMAP_COLORMAP = matplotlib.cm.summer
@@ -59,15 +64,11 @@ def load_data(filename):
     return data[:, (1, 0)], data[:, 2]
 
 
-def sanitize_data(points, values, max_rel_dist=6):
+def sanitize_data(points, values):
     """
     Sanitize data by removing outliers.
     """
-    # See https://stackoverflow.com/a/16562028/857390
-    abs_dist = np.abs(values - np.median(values))
-    med_dist = np.median(abs_dist)
-    rel_dist = abs_dist / med_dist if med_dist else 0
-    keep = rel_dist < max_rel_dist
+    keep = MIN_RENT < values < MAX_RENT
     return points[keep, :], values[keep]
 
 
@@ -121,10 +122,17 @@ def export_colormap(cm, filename, entries=20):
     Export a matplotlib colormap to a JSON file.
 
     The colormap is exported as a list of ``entries`` RGBA tuples for
-    linearly spaced indices between 0 and 1 (inclusive).
+    linearly spaced indices between 0 and 1 (inclusive). The list is
+    part of a dictionary that also contains the minimum and maximum
+    rent.
     """
+    data = {
+        'min': MIN_RENT,
+        'max': MAX_RENT,
+        'colors': cm(np.linspace(0, 1, entries)).tolist(),
+    }
     with codecs.open(filename, 'w', encoding='utf8') as f:
-        json.dump(cm(np.linspace(0, 1, entries)).tolist(), f)
+        json.dump(data, f)
 
 
 if __name__ == '__main__':
