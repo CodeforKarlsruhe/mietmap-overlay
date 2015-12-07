@@ -68,7 +68,7 @@ def sanitize_data(points, values):
     """
     Sanitize data by removing outliers.
     """
-    keep = MIN_RENT < values < MAX_RENT
+    keep = (MIN_RENT <= values) & (values <= MAX_RENT)
     return points[keep, :], values[keep]
 
 
