@@ -41,9 +41,9 @@ MAX_RENT = 20
 
 # Heatmap options
 HEATMAP_AREA = ((8.28, 49.08), (8.53, 48.92))
-HEATMAP_SIZE = (200, 128)
+HEATMAP_SIZE = (400, 256)
 HEATMAP_COLORMAP = matplotlib.cm.summer
-HEATMAP_RADIUS = 0.00015
+HEATMAP_RADIUS = 0.0001
 
 # Number of entries in the exported colormap
 COLORMAP_EXPORT_ENTRIES = 20
