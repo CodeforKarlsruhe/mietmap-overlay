@@ -140,6 +140,7 @@ if __name__ == '__main__':
     import logging
     import logging.handlers
     import os.path
+    import sys
 
     HERE = os.path.abspath(os.path.dirname(__file__))
 
