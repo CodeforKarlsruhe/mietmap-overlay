@@ -82,9 +82,11 @@ def create_heatmap(points, values, area):
 
     Returns a ``PIL.Image.Image`` instance.
     """
+    normalized = (values - MIN_RENT) / (MAX_RENT - MIN_RENT)
     return clusterpolate.image(
-        points, values, size=HEATMAP_SIZE, area=area,
-        radius=HEATMAP_RADIUS, colormap=HEATMAP_COLORMAP)[3]
+        points, normalized, size=HEATMAP_SIZE, area=area,
+        radius=HEATMAP_RADIUS, colormap=HEATMAP_COLORMAP,
+        normalize=False)[3]
 
 
 def lonlat_to_world(points):
